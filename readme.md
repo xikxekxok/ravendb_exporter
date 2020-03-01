@@ -1,7 +1,10 @@
-# RavenDB 4 Prometheus exporter
+# RavenDB 4 Prometheus exporter with custom metrics
+
+Forked from https://github.com/marcinbudny/ravendb_exporter.
 
 Exports RavenDB 4 metrics and allows for Prometheus scraping. Versions prior to 4 are not supported due to different API and authentication mechanism.
 
+In addition to original exporter, this version added support of collecting metrics from custom user queries
 ## Installation
 
 ### From source
@@ -10,9 +13,9 @@ You need to have a Go 1.6+ environment configured.
 
 ```bash
 cd $GOPATH/src
-mkdir -p github.com/marcinbudny
-git clone https://github.com/marcinbudny/ravendb_exporter github.com/marcinbudny/ravendb_exporter
-cd github.com/marcinbudny/ravendb_exporter 
+mkdir -p github.com/xikxekxok
+git clone https://github.com/xikxekxok/ravendb_exporter github.com/xikxekxok/ravendb_exporter
+cd github.com/xikxekxok/ravendb_exporter 
 go build -o ravendb_exporter
 ./ravendb_exporter --ravendb-url=http://live-test.ravendb.net
 ```
@@ -38,6 +41,7 @@ The exporter can be configured with commandline arguments, environment variables
 |--client-cert|CLIENT_CERT|(empty)|Path to client public certificate used for authentication|
 |--client-key|CLIENT_KEY|(empty)|Path to client private key used for authentication|
 |--client-key-password|CLIENT_KEY_PASSWORD|(empty)|Password for the client key (if it is encrypted)|
+|--query-dir|QUERY_DIR|(empty)|Folder, which contains yml files with custom queries settings|
 
 Sample configuration with authentication, for Docker:
 
@@ -48,15 +52,31 @@ docker run -d \
 -e USE_AUTH=true \
 -e CLIENT_CERT=/certs/admin.client.certificate.myserver.crt \
 -e CLIENT_KEY=/certs/admin.client.certificate.myserver.key \
--e CLIENT_KEY_PASSWORD=mypassword
+-e CLIENT_KEY_PASSWORD=mypassword \
+-e QUERY_DIR=/queries \
 -v /path/to/certs/on/host:/certs \
+-v /path/to/queries/on/host:/queries \
 -p 9440:9440 \
-marcinbudny/ravendb_exporter
+xikxekxok/ravendb_exporter
+```
+### Custom query settings file example
+```
+- name: orders_count
+  rql: from Orders as o group by o select count() as cnt
+  database: ExampleDatabaseName
+  value-on-error: -1
+  interval: 1h
+  value-field: cnt
+
+- name: orders_by_company
+  rql: from Orders as o group by o.Company select o.Company, count() as count
+  database: ExampleDatabaseName
+  interval: 1m
+  value-field: count
+  label-fields: ["Company"]
 ```
 
 ## Exported metrics
-
-Let me know if there is a metric you would like to be added.
 
 ```
 ravendb_cpu_time_seconds_total 1613.68
@@ -117,23 +137,13 @@ ravendb_up 1
 # HELP ravendb_working_set_bytes Process working set
 # TYPE ravendb_working_set_bytes gauge
 ravendb_working_set_bytes 1.651195904e+09
+# HELP ravendb_queryresult_orders_by_company Result of an RQL query orders_by_company
+# TYPE ravendb_queryresult_orders_by_company gauge
+ravendb_queryresult_orders_by_company{Company="companies/1-A"} 6
+ravendb_queryresult_orders_by_company{Company="companies/10-A"} 14
+ravendb_queryresult_orders_by_company{Company="companies/11-A"} 10
+ravendb_queryresult_orders_by_company{Company="companies/12-A"} 6
+# HELP ravendb_queryresult_orders_count Result of an RQL query orders_count
+# TYPE ravendb_queryresult_orders_count gauge
+ravendb_queryresult_orders_count 830
 ```
-
-## Changelog
-
-### 0.3.0
-
-* Support for password protected private keys
-* Fixed problem with no option to load config file #1
-
-### 0.2.0 
-
-* Changed metric names to conform to Prometheus guidelines
-
-### 0.1.2
-
-* Fixed name of the ravendb_database_stale_index_count metric
-
-### 0.1.1
-
-* Initial version
