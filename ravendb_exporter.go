@@ -26,6 +26,7 @@ var (
 	clientCertFile    string
 	clientKeyFile     string
 	clientKeyPassword string
+	queryDir          string
 )
 
 func serveLandingPage() {
@@ -45,7 +46,7 @@ func serveLandingPage() {
 
 func serveMetrics() {
 	prometheus.MustRegister(newExporter())
-
+	startQueryCollector(queryDir)
 	http.Handle("/metrics", promhttp.Handler())
 }
 
@@ -61,7 +62,7 @@ func readAndValidateConfig() {
 	flag.StringVar(&clientCertFile, "client-cert", "", "Path to client public certificate used for authentication")
 	flag.StringVar(&clientKeyFile, "client-key", "", "Path to client private key used for authentication")
 	flag.StringVar(&clientKeyPassword, "client-key-password", "", "(optional) Password for the client private keys")
-
+	flag.StringVar(&queryDir, "query-dir", "", "(optional) Path to dir with queries")
 	flag.Parse()
 
 	log.WithFields(logrus.Fields{
@@ -73,6 +74,7 @@ func readAndValidateConfig() {
 		"port":       port,
 		"timeout":    timeout,
 		"verbose":    verbose,
+		"queryDir":   queryDir,
 	}).Infof("RavenDB exporter configured")
 
 	if useAuth && (caCertFile == "" || clientCertFile == "" || clientKeyFile == "") {
