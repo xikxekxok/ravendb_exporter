@@ -104,28 +104,28 @@ func (e *exporter) Collect(ch chan<- prometheus.Metric) {
 		e.workingSet.Set(getMemoryWorkingSet(stats))
 		ch <- e.workingSet
 
-		e.cpuTime.Set(getCPUTime(stats))
+		e.cpuTime.Add(getCPUTime(stats))
 		ch <- e.cpuTime
 
 		e.isLeader.Set(getIsLeader(stats))
 		ch <- e.isLeader
 
-		e.requestTotal.Set(getRequestTotal(stats))
+		e.requestTotal.Add(getRequestTotal(stats))
 		ch <- e.requestTotal
 
-		e.documentPutTotal.Set(getDocumentPutTotal(stats))
+		e.documentPutTotal.Add(getDocumentPutTotal(stats))
 		ch <- e.documentPutTotal
 
-		e.documentPutBytes.Set(getDocumentPutBytesTotal(stats))
+		e.documentPutBytes.Add(getDocumentPutBytesTotal(stats))
 		ch <- e.documentPutBytes
 
-		e.mapIndexIndexedTotal.Set(getMapIndexIndexedTotal(stats))
+		e.mapIndexIndexedTotal.Add(getMapIndexIndexedTotal(stats))
 		ch <- e.mapIndexIndexedTotal
 
-		e.mapReduceIndexMappedTotal.Set(getMapReduceIndexMappedTotal(stats))
+		e.mapReduceIndexMappedTotal.Add(getMapReduceIndexMappedTotal(stats))
 		ch <- e.mapReduceIndexMappedTotal
 
-		e.mapReduceIndexReducedTotal.Set(getMapReduceIndexReducedTotal(stats))
+		e.mapReduceIndexReducedTotal.Add(getMapReduceIndexReducedTotal(stats))
 		ch <- e.mapReduceIndexReducedTotal
 
 		collectPerDatabaseGauge(stats, e.databaseDocuments, getDatabaseDocuments, ch)
@@ -153,7 +153,7 @@ func collectPerDatabaseGauge(stats *stats, vec *prometheus.GaugeVec, collectFunc
 
 func collectPerDatabaseCounter(stats *stats, vec *prometheus.CounterVec, collectFunc func(*dbStats) float64, ch chan<- prometheus.Metric) {
 	for _, dbs := range stats.dbStats {
-		vec.WithLabelValues(dbs.database).Set(collectFunc(dbs))
+		vec.WithLabelValues(dbs.database).Add(collectFunc(dbs))
 	}
 	vec.Collect(ch)
 }
